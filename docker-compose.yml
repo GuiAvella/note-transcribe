@@ -1,0 +1,40 @@
+version: '3.8'
+
+name: Note Transcribe
+
+services:
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./init-ollama.sh:/init-ollama.sh:ro
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    entrypoint: /init-ollama.sh
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  whisper:
+    image: hwdsl2/whisper-server
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
+
+  whisper-proxy:
+    image: guiavella/whisper-proxy:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - whisper
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
